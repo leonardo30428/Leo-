@@ -1,5 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { X, TrendingUp, TrendingDown, PiggyBank, Calendar, Tag, Building2, AlignLeft } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  X, 
+  TrendingUp, 
+  TrendingDown, 
+  PiggyBank, 
+  Calendar, 
+  Tag, 
+  Building2, 
+  AlignLeft,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  Plus,
+  Check,
+  Search,
+  ArrowLeft,
+  ScanLine,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 import { Transaction, TransactionType } from '../types';
 import { getTodayDateString } from '../utils/finance';
 
@@ -8,9 +27,11 @@ interface TransactionModalProps {
   onClose: () => void;
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   defaultType?: TransactionType;
+  defaultDate?: string;
+  onOpenReceiptScanner?: () => void;
 }
 
-const COMMON_EXPENSE_SUGGESTIONS = [
+const DEFAULT_EXPENSE_CATEGORIES = [
   'Alimentação',
   'Aluguel',
   'Cartão de Crédito',
@@ -20,10 +41,26 @@ const COMMON_EXPENSE_SUGGESTIONS = [
   'Saúde',
   'Lazer',
   'Educação',
+  'Contas de Casa',
+  'Supermercado',
+  'Farmácia',
+  'Vestuário',
+  'Assinaturas',
   'Outro',
 ];
 
-const COMMON_INVESTMENT_SUGGESTIONS = [
+const DEFAULT_INCOME_CATEGORIES = [
+  'Salário',
+  'Freelance',
+  'Rendimentos',
+  'Vendas',
+  'Bônus / PLR',
+  'Reembolso',
+  'Pró-labore',
+  'Outro',
+];
+
+const DEFAULT_INVESTMENT_CATEGORIES = [
   'Reserva de Emergência',
   'Tesouro Selic',
   'CDB 100% CDI',
@@ -39,13 +76,64 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   onClose,
   onAddTransaction,
   defaultType = 'expense',
+  defaultDate,
+  onOpenReceiptScanner,
 }) => {
   const [type, setType] = useState<TransactionType>(defaultType);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(defaultDate || new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState('');
   const [bankName, setBankName] = useState('');
+  const [isPaid, setIsPaid] = useState<boolean>(true);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const formatBRDisplayDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length < 3) return dateStr;
+    const day = parts[2];
+    const m = parseInt(parts[1], 10) - 1;
+    const year = parts[0];
+    const monthsShort = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    return `${parseInt(day, 10)} ${monthsShort[m] || ''} ${year}`;
+  };
+
+  const handleAdjustDay = (delta: number) => {
+    const parts = (date || new Date().toISOString().split('T')[0]).split('-');
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    d.setDate(d.getDate() + delta);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    setDate(`${y}-${m}-${day}`);
+  };
+
+  // Categorias personalizadas e modal de categorias
+  const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('finance_user_custom_categories');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Mais detalhes state
+  const [showMoreDetails, setShowMoreDetails] = useState<boolean>(false);
+  const [repetitionMode, setRepetitionMode] = useState<'uma_vez' | 'parcela' | 'recorrente'>('uma_vez');
+
+  // Parcela state
+  const [installmentsCount, setInstallmentsCount] = useState<number>(2);
+  const [currentInstallment, setCurrentInstallment] = useState<number>(1);
+  const [installmentValueType, setInstallmentValueType] = useState<'total' | 'parcela'>('total');
+
+  // Recorrente state
+  const [frequency, setFrequency] = useState<'semanal' | 'quinzenal' | 'mensal' | 'bimestral' | 'personalizar'>('mensal');
+  const [customDays, setCustomDays] = useState<string>('30');
 
   useEffect(() => {
     if (isOpen) {
@@ -54,23 +142,90 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setAmount('');
       setCategory('');
       setBankName('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(defaultDate || new Date().toISOString().split('T')[0]);
+      setIsPaid(true);
+      setShowMoreDetails(false);
+      setRepetitionMode('uma_vez');
+      setInstallmentsCount(2);
+      setCurrentInstallment(1);
+      setInstallmentValueType('total');
+      setFrequency('mensal');
+      setCustomDays('30');
+      setIsCategoryPickerOpen(false);
+      setCategorySearch('');
+      setNewCategoryName('');
     }
-  }, [defaultType, isOpen]);
+  }, [defaultType, defaultDate, isOpen]);
+
+  // Salvar categorias personalizadas no localStorage
+  const handleSaveCustomCategory = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (!customCategories.includes(trimmed)) {
+      const updated = [...customCategories, trimmed];
+      setCustomCategories(updated);
+      try {
+        localStorage.setItem('finance_user_custom_categories', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setCategory(trimmed);
+    setNewCategoryName('');
+    setIsCategoryPickerOpen(false);
+  };
+
+  const [viewportBottomOffset, setViewportBottomOffset] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleResize = () => {
+      if (window.visualViewport) {
+        // Quantidade de pixels ocupada pelo teclado virtual na parte inferior da tela
+        const offset = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+        setViewportBottomOffset(offset);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('scroll', handleResize);
+      handleResize();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('scroll', handleResize);
+      }
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const currentSuggestions = 
+  // Lista combinada de categorias disponíveis para o tipo atual
+  const baseCategories = 
     type === 'income' 
-      ? [] 
+      ? DEFAULT_INCOME_CATEGORIES 
       : type === 'investment' 
-      ? COMMON_INVESTMENT_SUGGESTIONS 
-      : COMMON_EXPENSE_SUGGESTIONS;
+      ? DEFAULT_INVESTMENT_CATEGORIES 
+      : DEFAULT_EXPENSE_CATEGORIES;
+
+  const allAvailableCategories = Array.from(new Set([...baseCategories, ...customCategories]));
+  const filteredCategories = allAvailableCategories.filter(c => 
+    c.toLowerCase().includes(categorySearch.toLowerCase().trim())
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedAmount = parseFloat(amount.replace(',', '.'));
-    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
+    const rawAmount = parseFloat(amount.replace(',', '.'));
+    if (isNaN(rawAmount) || rawAmount <= 0) return;
+
+    let finalAmount = rawAmount;
+    if (repetitionMode === 'parcela' && installmentValueType === 'total') {
+      finalAmount = Number((rawAmount / installmentsCount).toFixed(2));
+    }
 
     const defaultCat = 
       type === 'income' 
@@ -79,120 +234,130 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         ? 'Investimento' 
         : 'Geral';
     const finalCategory = category.trim() || defaultCat;
-    const finalDescription = description.trim() || finalCategory;
-    const finalBank = bankName.trim() || 'Conta Principal';
+    
+    let finalDescription = description.trim() || finalCategory;
+    if (repetitionMode === 'parcela') {
+      finalDescription = `${finalDescription} (${currentInstallment}/${installmentsCount})`;
+    }
 
+    const finalBank = bankName.trim() || 'Conta Principal';
     const today = getTodayDateString();
     const finalDate = date || today;
-    const isFutureDate = finalDate > today;
 
     onAddTransaction({
       description: finalDescription,
-      amount: parsedAmount,
+      amount: finalAmount,
       date: finalDate,
       type,
       category: finalCategory,
       source: 'manual',
       bankName: finalBank,
-      isPaid: !isFutureDate,
+      isPaid: isPaid,
+      installments: repetitionMode === 'parcela' ? {
+        current: currentInstallment,
+        total: installmentsCount,
+        type: installmentValueType,
+      } : undefined,
+      recurrence: repetitionMode === 'recorrente' ? frequency : undefined,
+      isRecurring: repetitionMode === 'recorrente',
     });
 
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-x-hidden touch-pan-y"
+      style={{
+        paddingBottom: viewportBottomOffset > 0 ? `${viewportBottomOffset + 12}px` : undefined,
+        transition: 'padding-bottom 0.15s ease-out',
+      }}
+    >
       <div 
         id="transaction-modal"
-        className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] flex flex-col mx-auto"
       >
-        {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div>
-            <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+        {/* Header - Título centralizado, com ícone < no canto superior esquerdo e escaner no canto superior direito */}
+        <div className="relative p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+          {/* Canto superior esquerdo: somente o ícone < para voltar */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-slate-500 hover:text-slate-900 rounded-xl hover:bg-slate-200/70 transition-colors cursor-pointer z-10"
+            title="Voltar"
+          >
+            <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+          </button>
+
+          <div className="absolute inset-x-0 text-center pointer-events-none px-14">
+            <h3 className="font-extrabold text-slate-900 text-base sm:text-lg">
               {type === 'income' 
-                ? 'Nova Entrada (Receita)' 
+                ? 'Nova Receita' 
                 : type === 'investment'
-                ? 'Novo Investimento (Aporte)'
-                : 'Novo Gasto (Despesa)'}
+                ? 'Novo Investimento'
+                : 'Novo Gasto'}
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 truncate mt-0.5">
               {type === 'income' 
-                ? 'Adicione seu salário, comissão, freelance ou qualquer ganho' 
+                ? 'Adicione seus ganhos ou entradas financeiras' 
                 : type === 'investment'
-                ? 'Registre aportes para Reserva de Emergência, Ações, Renda Fixa ou Metas'
-                : 'Registre seus gastos e escolha ou digite a categoria que quiser'}
+                ? 'Registre seus aportes e investimentos'
+                : 'Registre seus gastos e contas do mês'}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          {/* Canto superior direito: escaner de conta ou cupom fiscal (sem o botão de fechar X) */}
+          {onOpenReceiptScanner ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenReceiptScanner();
+              }}
+              className="p-2 text-slate-500 hover:text-emerald-700 rounded-xl hover:bg-emerald-50 transition-colors cursor-pointer z-10 ml-auto"
+              title="Escanear conta ou cupom fiscal"
+            >
+              <ScanLine className="w-5 h-5" />
+            </button>
+          ) : (
+            <div className="w-9 h-9" />
+          )}
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+        {/* Form Body com Scroll suave */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
           
-          {/* Type Selector Tabs (Entrada, Despesa, Investimento) */}
-          <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/70">
+          <div className="p-5 sm:p-6 space-y-4 overflow-y-auto overflow-x-hidden flex-1">
+          
+          {/* Botão de Deslizar: PAGO (para gasto) / RECEBIDO (para receita) */}
+          <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200/90 rounded-2xl">
+            <span className="text-sm sm:text-base font-extrabold text-slate-900">
+              {type === 'income' ? 'Recebido' : type === 'investment' ? 'Aportado' : 'Pago'}
+            </span>
+            
+            {/* Botão para deslizar (Toggle switch) */}
             <button
               type="button"
-              id="type-tab-income"
-              onClick={() => {
-                setType('income');
-                setCategory('');
-              }}
-              className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all ${
-                type === 'income'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+              role="switch"
+              aria-checked={isPaid}
+              onClick={() => setIsPaid(!isPaid)}
+              className={`relative inline-flex h-6.5 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                isPaid ? 'bg-emerald-600' : 'bg-slate-300'
               }`}
+              title={isPaid ? 'Marcar como pendente' : 'Marcar como concluído'}
             >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Entrada</span>
-            </button>
-
-            <button
-              type="button"
-              id="type-tab-expense"
-              onClick={() => {
-                setType('expense');
-                setCategory('');
-              }}
-              className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all ${
-                type === 'expense'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <TrendingDown className="w-3.5 h-3.5" />
-              <span>Despesa</span>
-            </button>
-
-            <button
-              type="button"
-              id="type-tab-investment"
-              onClick={() => {
-                setType('investment');
-                setCategory('Investimento');
-              }}
-              className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all ${
-                type === 'investment'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <PiggyBank className="w-3.5 h-3.5" />
-              <span>Investir</span>
+              <span
+                className={`pointer-events-none inline-block h-5.5 w-5.5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                  isPaid ? 'translate-x-5.5' : 'translate-x-0'
+                }`}
+              />
             </button>
           </div>
 
           {/* Amount and Date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-sm sm:text-[15px] font-bold text-slate-800 mb-1.5">
                 Valor (R$) *
               </label>
               <input
@@ -202,96 +367,125 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 placeholder="0,00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full text-base font-bold p-2.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-slate-900"
-                autoFocus
+                className="w-full text-sm placeholder:text-xs font-bold p-2.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-slate-900"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <label className="block text-sm sm:text-[15px] font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-slate-500" />
                 Data *
               </label>
-              <input
-                type="date"
-                required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-slate-900"
-              />
+
+              {/* Caixa com formato '20 set 2026' e botões (< >) para passar o dia */}
+              <div className="relative flex items-center justify-between bg-white p-2 px-3 rounded-xl border border-slate-300 focus-within:ring-2 focus-within:ring-slate-900">
+                {/* Clique no texto/ícone abre o calendário */}
+                <div 
+                  onClick={() => {
+                    if (dateInputRef.current) {
+                      if ('showPicker' in HTMLInputElement.prototype) {
+                        try {
+                          dateInputRef.current.showPicker();
+                        } catch {
+                          dateInputRef.current.focus();
+                        }
+                      } else {
+                        dateInputRef.current.focus();
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-2 cursor-pointer flex-1 py-0.5"
+                  title="Clique para abrir o calendário"
+                >
+                  <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-xs sm:text-sm font-bold text-slate-900 select-none">
+                    {formatBRDisplayDate(date)}
+                  </span>
+                </div>
+
+                {/* Input escondido para acionar o calendário nativo */}
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  required
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="sr-only"
+                />
+
+                {/* Ícones (< >) para passar o dia sem precisar do calendário */}
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustDay(-1)}
+                    className="p-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                    title="Dia anterior"
+                  >
+                    <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustDay(1)}
+                    className="p-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                    title="Próximo dia"
+                  >
+                    <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Description */}
+          {/* Description - Título "Descrição" e placeholder "Descrição opcional" */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-              <AlignLeft className="w-3.5 h-3.5 text-slate-400" />
+            <label className="block text-sm sm:text-[15px] font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+              <AlignLeft className="w-4 h-4 text-slate-500" />
               Descrição
             </label>
             <input
               type="text"
-              placeholder={
-                type === 'income' 
-                  ? 'Ex: Salário Empresa, Bônus, Freelance...' 
-                  : type === 'investment'
-                  ? 'Ex: Reserva de Emergência, Tesouro Direto, Ações...'
-                  : 'Ex: Mercado Pão de Açúcar, Aluguel, Luz...'
-              }
+              placeholder="Descrição opcional"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-slate-900"
+              className="w-full text-xs placeholder:text-[11.5px] placeholder:text-slate-400 p-2.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-slate-800"
             />
           </div>
 
-          {/* Custom Category */}
+          {/* Categoria sem escrita direta: clique no campo ou no botão (+) abre as categorias e adicionar categoria */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
-              <span className="flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-slate-400" />
-                Categoria
-              </span>
+            <label className="block text-sm sm:text-[15px] font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+              <Tag className="w-4 h-4 text-slate-500" />
+              Categoria
             </label>
-            <input
-              type="text"
-              placeholder={
-                type === 'income' 
-                  ? 'Digite a categoria (ex: Salário, Comissão, Freelance...)' 
-                  : type === 'investment'
-                  ? 'Ex: Reserva, Renda Fixa, Bolsa de Valores...'
-                  : 'Ex: Alimentação, Moradia, Transporte...'
-              }
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className={`w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-slate-900 ${
-                currentSuggestions.length > 0 ? 'mb-2' : ''
-              }`}
-            />
-            {/* Quick chips suggestions (shown only if available, e.g. for despesas/investimentos) */}
-            {currentSuggestions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {currentSuggestions.map((sug) => (
-                  <button
-                    key={sug}
-                    type="button"
-                    onClick={() => setCategory(sug)}
-                    className={`text-[11px] px-2.5 py-1 rounded-lg border transition-colors ${
-                      category === sug 
-                        ? 'bg-slate-900 text-white border-slate-900 font-bold' 
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200'
-                    }`}
-                  >
-                    {sug}
-                  </button>
-                ))}
-              </div>
-            )}
+
+            <div 
+              onClick={() => setIsCategoryPickerOpen(true)}
+              className="relative flex items-center justify-between bg-white p-2.5 px-3 rounded-xl border border-slate-300 hover:border-slate-400 cursor-pointer transition-colors"
+              title="Clique para escolher ou adicionar categoria"
+            >
+              <span className={`text-xs sm:text-sm font-semibold truncate ${category ? 'text-slate-900' : 'text-slate-400'}`}>
+                {category || 'Selecione uma categoria...'}
+              </span>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCategoryPickerOpen(true);
+                }}
+                className="p-1 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer ml-2"
+                title="Abrir categorias e adicionar categoria"
+              >
+                <Plus className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+              </button>
+            </div>
           </div>
 
-          {/* Custom Bank / Account - User types anything */}
+          {/* Conta / Banco */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
-              <span className="flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5 text-slate-400" />
+            <label className="block text-sm sm:text-[15px] font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-slate-500" />
                 Conta / Banco
               </span>
             </label>
@@ -300,41 +494,345 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               placeholder="Digite o banco ou conta (ex: Nubank, Itaú, Bradesco, Dinheiro...)"
               value={bankName}
               onChange={(e) => setBankName(e.target.value)}
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-slate-900"
+              className="w-full text-xs placeholder:text-[11.5px] placeholder:text-slate-400 p-2.5 rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-slate-800"
             />
           </div>
 
-          {/* Actions */}
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+          {/* Seção "Mais detalhes" */}
+          <div className="pt-2 border-t border-slate-100">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+              onClick={() => setShowMoreDetails(!showMoreDetails)}
+              className="w-full flex items-center justify-between py-2 text-sm font-bold text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
             >
-              Cancelar
+              <span className="flex items-center gap-1.5">
+                <SlidersHorizontal className="w-4 h-4 text-slate-500" />
+                <span>Mais detalhes</span>
+              </span>
+              {showMoreDetails ? (
+                <ChevronUp className="w-4 h-4 text-slate-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+              )}
             </button>
+
+            {/* Conteúdo de Mais Detalhes: "Uma vez", "Parcela" e "Recorrente" */}
+            {showMoreDetails && (
+              <div className="mt-2.5 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4 animate-in fade-in duration-150">
+                
+                {/* Abas das opções */}
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setRepetitionMode('uma_vez')}
+                    className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      repetitionMode === 'uma_vez'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Uma vez
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRepetitionMode('parcela')}
+                    className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      repetitionMode === 'parcela'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Parcela
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRepetitionMode('recorrente')}
+                    className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      repetitionMode === 'recorrente'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Recorrente
+                  </button>
+                </div>
+
+                {/* Sub-opções quando for "Parcela" */}
+                {repetitionMode === 'parcela' && (
+                  <div className="space-y-3 pt-1 border-t border-slate-200/60">
+                    
+                    {/* Parcelas: botões do lado - 2 + */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">Parcelas</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = Math.max(2, installmentsCount - 1);
+                            setInstallmentsCount(next);
+                            if (currentInstallment > next) setCurrentInstallment(next);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 text-base shadow-2xs transition-colors cursor-pointer"
+                          title="Diminuir quantidade de parcelas"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center font-black text-slate-900 text-sm">
+                          {installmentsCount}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setInstallmentsCount((prev) => prev + 1)}
+                          className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 text-base shadow-2xs transition-colors cursor-pointer"
+                          title="Aumentar quantidade de parcelas"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Embaixo: Parcela atual */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">Parcela atual</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentInstallment((prev) => Math.max(1, prev - 1))}
+                          className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 text-base shadow-2xs transition-colors cursor-pointer"
+                          title="Parcela anterior"
+                        >
+                          -
+                        </button>
+                        <span className="min-w-14 text-center font-bold text-slate-900 text-xs">
+                          {currentInstallment} de {installmentsCount}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentInstallment((prev) => Math.min(installmentsCount, prev + 1))}
+                          className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 text-base shadow-2xs transition-colors cursor-pointer"
+                          title="Próxima parcela"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Embaixo: Valor informado do lado "Total" "Parcela" */}
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                      <span className="text-xs font-bold text-slate-700">Valor informado</span>
+                      <div className="flex items-center bg-white p-0.5 rounded-lg border border-slate-200 shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => setInstallmentValueType('total')}
+                          className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                            installmentValueType === 'total'
+                              ? 'bg-slate-900 text-white shadow-2xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Total
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setInstallmentValueType('parcela')}
+                          className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                            installmentValueType === 'parcela'
+                              ? 'bg-slate-900 text-white shadow-2xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Parcela
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* Sub-opções quando for "Recorrente" */}
+                {repetitionMode === 'recorrente' && (
+                  <div className="space-y-2.5 pt-1 border-t border-slate-200/60">
+                    <span className="block text-xs font-bold text-slate-700">
+                      Frequência
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(['semanal', 'quinzenal', 'mensal', 'bimestral', 'personalizar'] as const).map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setFrequency(opt)}
+                          className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer capitalize ${
+                            frequency === opt
+                              ? 'bg-slate-900 text-white border-slate-900 font-bold shadow-2xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {opt === 'personalizar' ? 'Personalizar' : opt}
+                        </button>
+                      ))}
+                    </div>
+
+                    {frequency === 'personalizar' && (
+                      <div className="mt-2 flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span className="text-xs text-slate-600">Repetir a cada</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={customDays}
+                          onChange={(e) => setCustomDays(e.target.value)}
+                          className="w-16 p-1 text-xs text-center font-bold border border-slate-300 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-slate-900"
+                        />
+                        <span className="text-xs text-slate-600">dias</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              </div>
+            )}
+          </div>
+
+          </div>
+
+          {/* Action: Ícone de confirmar centralizado e fixo na base do modal, subindo com o teclado */}
+          <div className="p-3.5 sm:p-4 flex items-center justify-center border-t border-slate-100 bg-white/95 backdrop-blur-xs shrink-0 shadow-xs">
             <button
               type="submit"
               id="btn-submit-new-transaction"
-              className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl shadow-xs transition-all ${
+              className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95 hover:scale-105 transition-all cursor-pointer ${
                 type === 'income'
-                  ? 'bg-emerald-600 hover:bg-emerald-700'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
                   : type === 'investment'
-                  ? 'bg-indigo-600 hover:bg-indigo-700'
-                  : 'bg-rose-600 hover:bg-rose-700'
+                  ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30'
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
               }`}
+              title="Confirmar lançamento"
             >
-              {type === 'income' 
-                ? 'Confirmar Entrada' 
-                : type === 'investment' 
-                ? 'Confirmar Investimento' 
-                : 'Confirmar Despesa'}
+              <Check className="w-7 h-7 stroke-[3]" />
             </button>
           </div>
 
         </form>
 
       </div>
+
+      {/* Modal / Sheet Interno de Seleção e Criação de Categorias */}
+      {isCategoryPickerOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-xs animate-in fade-in duration-100 overflow-x-hidden">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150">
+            
+            {/* Header do Picker de Categorias */}
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-emerald-600" />
+                <h4 className="font-extrabold text-slate-900 text-sm sm:text-base">
+                  Categorias
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCategoryPickerOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Criar nova categoria */}
+            <div className="p-4 border-b border-slate-100 bg-emerald-50/50 space-y-2">
+              <span className="text-xs font-extrabold text-emerald-900 block">
+                Criar nova categoria
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Nome da nova categoria..."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSaveCustomCategory(newCategoryName);
+                    }
+                  }}
+                  className="flex-1 text-xs p-2 rounded-xl bg-white border border-emerald-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSaveCustomCategory(newCategoryName)}
+                  disabled={!newCategoryName.trim()}
+                  className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Criar</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Busca de Categorias Existentes */}
+            <div className="p-4 border-b border-slate-100">
+              <div className="relative flex items-center">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3" />
+                <input
+                  type="text"
+                  placeholder="Buscar categoria..."
+                  value={categorySearch}
+                  onChange={(e) => setCategorySearch(e.target.value)}
+                  className="w-full text-xs pl-8.5 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 bg-slate-50"
+                />
+              </div>
+            </div>
+
+            {/* Lista de Categorias Disponíveis */}
+            <div className="p-4 overflow-y-auto flex-1 space-y-1.5">
+              {filteredCategories.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-400">
+                  Nenhuma categoria encontrada. Digite acima para criar!
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {filteredCategories.map((catName) => {
+                    const isSelected = category === catName;
+                    return (
+                      <button
+                        key={catName}
+                        type="button"
+                        onClick={() => {
+                          setCategory(catName);
+                          setIsCategoryPickerOpen(false);
+                        }}
+                        className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all flex items-center justify-between cursor-pointer ${
+                          isSelected
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        <span className="truncate">{catName}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 shrink-0 ml-1 text-emerald-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer do Picker */}
+            <div className="p-3 border-t border-slate-100 flex justify-end bg-slate-50">
+              <button
+                type="button"
+                onClick={() => setIsCategoryPickerOpen(false)}
+                className="px-4 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 rounded-xl transition-colors cursor-pointer"
+              >
+                Concluir
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

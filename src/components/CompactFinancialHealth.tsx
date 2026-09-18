@@ -68,14 +68,14 @@ export const CompactFinancialHealth: React.FC<CompactFinancialHealthProps> = ({
                 : 'bg-emerald-600 text-white shadow-emerald-200'
             }`}>
               <span className="text-lg leading-tight">{displayScore}</span>
-              <span className="text-[9px] font-bold uppercase opacity-80">de 100</span>
+              <span className="text-[9px] font-bold opacity-80">de 100</span>
             </div>
           </div>
 
           {/* Status info */}
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
-              <span className={`text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+              <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
                 isZeroed
                   ? 'bg-slate-200 text-slate-800'
                   : isRed 

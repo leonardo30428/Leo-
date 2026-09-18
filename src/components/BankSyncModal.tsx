@@ -85,10 +85,10 @@ export const BankSyncModal: React.FC<BankSyncModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto overflow-x-hidden touch-pan-y">
       <div 
         id="bank-sync-modal"
-        className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150"
+        className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-slate-200 overflow-x-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150 mx-auto"
       >
         {/* Header */}
         <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -181,7 +181,7 @@ export const BankSyncModal: React.FC<BankSyncModalProps> = ({
           {/* Accounts & Cards list */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-xs font-bold tracking-wider text-slate-500">
                 Contas e Cartões de Crédito
               </span>
               <button
@@ -294,7 +294,7 @@ export const BankSyncModal: React.FC<BankSyncModalProps> = ({
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-slate-900">{acc.institution}</span>
-                        <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
                           {acc.type === 'credit_card' ? 'Cartão de Crédito' : acc.type === 'investment' ? 'Investimentos' : 'Conta Corrente'}
                         </span>
                       </div>

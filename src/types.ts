@@ -11,6 +11,15 @@ export interface Transaction {
   bankName?: string;
   isPaid?: boolean;
   notes?: string;
+  installments?: {
+    current: number;
+    total: number;
+    type?: 'total' | 'installment';
+  };
+  recurrence?: 'semanal' | 'quinzenal' | 'mensal' | 'bimestral' | 'personalizar';
+  isRecurring?: boolean;
+  recurringParentId?: string;
+  paidMonths?: { [monthKey: string]: boolean };
 }
 
 export interface BankAccount {

@@ -150,10 +150,10 @@ Estou analisando seu mês atual: você acumulou R$ ${summary.totalIncome.toFixed
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/40 backdrop-blur-xs flex justify-end">
+    <div className="fixed inset-0 z-50 overflow-hidden overflow-x-hidden touch-pan-y bg-slate-900/40 backdrop-blur-xs flex justify-end">
       <div 
         id="gemini-chat-drawer"
-        className="bg-white w-full max-w-lg h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200 border-l border-slate-200"
+        className="bg-white w-full max-w-lg h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-200 border-l border-slate-200 overflow-x-hidden"
       >
         {/* Drawer Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-violet-50/60">

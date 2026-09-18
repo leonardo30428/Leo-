@@ -148,17 +148,17 @@ export const FaturaPage: React.FC<FaturaPageProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CreditCard className="w-6 h-6 opacity-90" />
-              <span className="font-black text-sm tracking-wider uppercase">
+              <span className="font-black text-sm tracking-wider">
                 {activeCard.institution || 'Cartão de Crédito'}
               </span>
             </div>
-            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs">
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs">
               {activeCard.status === 'connected' ? 'Open Finance Ativo' : 'Manual'}
             </span>
           </div>
 
           <div className="my-auto py-2">
-            <span className="text-xs uppercase font-bold tracking-wider opacity-80 block">
+            <span className="text-xs font-bold tracking-wider opacity-80 block">
               Fatura Atual
             </span>
             <div className="text-3xl sm:text-4xl font-black tracking-tight">

@@ -29,7 +29,7 @@ export const FinancialHealthBanner: React.FC<FinancialHealthBannerProps> = ({
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider bg-rose-200/80 text-rose-800 px-2.5 py-0.5 rounded-full">
+                <span className="text-xs font-black tracking-wider bg-rose-200/80 text-rose-800 px-2.5 py-0.5 rounded-full">
                   Atenção: Você está no Vermelho
                 </span>
                 <span className="text-xs font-semibold text-rose-700">
@@ -83,7 +83,7 @@ export const FinancialHealthBanner: React.FC<FinancialHealthBannerProps> = ({
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-bold tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
                 Saúde Financeira: {healthStatus} ({financialHealthScore}/100)
               </span>
               <span className="text-xs font-semibold text-emerald-700">

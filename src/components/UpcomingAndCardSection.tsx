@@ -132,7 +132,7 @@ export const UpcomingAndCardSection: React.FC<UpcomingAndCardSectionProps> = ({
             {/* Total to pay badge */}
             <div className="bg-rose-50/70 border border-rose-200/70 rounded-2xl p-3 flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-extrabold text-rose-800">
+                <span className="text-[10px] font-extrabold text-rose-800">
                   Total Pendente
                 </span>
                 <div className="text-lg sm:text-xl font-black text-rose-950">
@@ -229,7 +229,7 @@ export const UpcomingAndCardSection: React.FC<UpcomingAndCardSectionProps> = ({
             {/* Total to receive badge */}
             <div className="bg-emerald-50/70 border border-emerald-200/70 rounded-2xl p-3 flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-extrabold text-emerald-800">
+                <span className="text-[10px] font-extrabold text-emerald-800">
                   Total Previsto
                 </span>
                 <div className="text-lg sm:text-xl font-black text-emerald-950">
@@ -349,14 +349,14 @@ export const UpcomingAndCardSection: React.FC<UpcomingAndCardSectionProps> = ({
               style={{ background: `linear-gradient(135deg, ${mainCard.color || '#820ad1'}, #2e1065)` }}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold tracking-widest uppercase opacity-90">
+                <span className="text-xs font-bold tracking-widest opacity-90">
                   {mainCard.institution}
                 </span>
                 <CreditCard className="w-5 h-5 opacity-80" />
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">
+                <span className="text-[10px] font-bold tracking-wider opacity-75">
                   Fatura Atual
                 </span>
                 <div className="text-2xl font-black tracking-tight">

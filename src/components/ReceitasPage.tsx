@@ -113,7 +113,7 @@ export const ReceitasPage: React.FC<ReceitasPageProps> = ({
         {/* Total Receitas */}
         <div className="bg-white rounded-2xl p-5 border border-emerald-200 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/90 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold tracking-wider text-emerald-800 bg-emerald-100/90 px-2.5 py-1 rounded-md">
               Total de Receitas
             </span>
             <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
@@ -132,7 +132,7 @@ export const ReceitasPage: React.FC<ReceitasPageProps> = ({
         {/* Status de Recebimento */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
               Confirmado em Conta
             </span>
             <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
@@ -154,7 +154,7 @@ export const ReceitasPage: React.FC<ReceitasPageProps> = ({
         {/* Sobra Líquida baseada no orçamento real */}
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 text-white shadow-xs flex flex-col justify-between">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md">
+            <span className="text-[11px] font-bold tracking-wider bg-white/20 px-2 py-0.5 rounded-md">
               Sobra Líquida Atual
             </span>
             <p className="text-2xl sm:text-3xl font-black mt-2">
@@ -231,7 +231,7 @@ export const ReceitasPage: React.FC<ReceitasPageProps> = ({
                 >
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded ${theme.badge}`}>
+                      <span className={`text-xs font-bold tracking-wider px-2 py-0.5 rounded ${theme.badge}`}>
                         {pct}% da Renda
                       </span>
                       <span className="text-xs font-semibold text-slate-500">

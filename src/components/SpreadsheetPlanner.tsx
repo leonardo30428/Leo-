@@ -21,9 +21,11 @@ import {
 import { SpreadsheetEnvelope, SpreadsheetBudgetItem, Transaction, TransactionType } from '../types';
 import { formatCurrency } from '../utils/finance';
 import { emptySpreadsheetEnvelopes } from '../data/mockData';
+import { HorizontalRankingModal, RankingCategoryType } from './HorizontalRankingModal';
 
 interface SpreadsheetPlannerProps {
   transactions?: Transaction[];
+  selectedMonthDate?: string;
   onAskAiTips?: (question: string) => void;
   onOpenNewTransaction?: (type?: TransactionType) => void;
   onAddTransaction?: (tx: Omit<Transaction, 'id'>) => void;
@@ -42,6 +44,7 @@ const COLOR_PRESETS = [
 
 export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({ 
   transactions = [],
+  selectedMonthDate,
   onAskAiTips,
   onOpenNewTransaction,
   onAddTransaction,
@@ -68,6 +71,9 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
   });
 
   const [confirmingReset, setConfirmingReset] = useState(false);
+
+  // State to open horizontal ranking chart modal (1. Renda, 2. Despesas, 3. Investimentos)
+  const [rankingModalType, setRankingModalType] = useState<RankingCategoryType | null>(null);
 
   // Modal / Form state to add item (investment or expense) directly
   const [activeEnvelopeIdForNewItem, setActiveEnvelopeIdForNewItem] = useState<string | null>(null);
@@ -163,6 +169,7 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
 
     // 1. Add all expense transactions launched above
     expenseTransactions.forEach((tx) => {
+      const isInvest = tx.category === 'Investimento' || tx.category?.toLowerCase().includes('investimento');
       items.push({
         id: tx.id,
         transactionId: tx.id,
@@ -170,15 +177,18 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
         amount: tx.amount,
         percentageOfTotal: totalIncome > 0 ? (tx.amount / totalIncome) * 100 : 0,
         category: tx.category || 'Despesa',
-        type: 'expense',
+        type: isInvest ? 'investment' : 'expense',
         envelope: envelopes[0]?.name || 'Renda Principal do Mês',
         isPaid: tx.isPaid !== false,
         isLinkedFromTop: true,
       });
     });
 
-    // 2. Add all investment transactions launched above
+    // 2. Add all investment transactions launched above (avoiding duplicates)
     investmentTransactions.forEach((tx) => {
+      if (items.some((existing) => existing.id === tx.id || existing.transactionId === tx.id)) {
+        return;
+      }
       items.push({
         id: tx.id,
         transactionId: tx.id,
@@ -283,15 +293,15 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
     const parsedAmount = parseFloat(newItemAmount.replace(',', '.'));
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
-    const finalDescription = newItemDescription.trim() || (newItemType === 'investment' ? 'Aporte Investimento' : 'Despesa');
-    const finalCategory = newItemCategory.trim() || (newItemType === 'investment' ? 'Investimento' : 'Geral');
+    const finalDescription = newItemDescription.trim() || 'Aporte Investimento';
+    const finalCategory = newItemCategory.trim() || 'Investimento';
 
     if (onAddTransaction) {
       onAddTransaction({
         description: finalDescription,
         amount: parsedAmount,
-        date: new Date().toISOString().split('T')[0],
-        type: newItemType,
+        date: selectedMonthDate || new Date().toISOString().split('T')[0],
+        type: 'expense', // Atribuído à despesa porque sai do salário!
         category: finalCategory,
         source: 'manual',
         bankName: 'Nubank',
@@ -306,7 +316,7 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
         amount: parsedAmount,
         percentageOfTotal: totalIncome > 0 ? (parsedAmount / totalIncome) * 100 : 0,
         category: finalCategory,
-        type: newItemType,
+        type: 'investment',
         envelope: targetEnv.name,
         isPaid: true,
       };
@@ -324,8 +334,8 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
     setActiveEnvelopeIdForNewItem(null);
     setNewItemDescription('');
     setNewItemAmount('');
-    setNewItemCategory('');
-    setNewItemType('expense');
+    setNewItemCategory('Investimento');
+    setNewItemType('investment');
   };
 
   // Reset to Zero
@@ -391,7 +401,7 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center">
                 <Plus className="w-4 h-4 stroke-[2.5]" />
               </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+              <span className="text-xs font-bold tracking-wider text-emerald-300">
                 Taxa de Investimento Automática
               </span>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md font-bold border border-emerald-500/30">
@@ -447,10 +457,9 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
                 setNewItemDescription('Reserva de Emergência');
                 setNewItemCategory('Investimento');
               }}
-              className="mt-3 w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+              className="mt-3 w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>+ Fazer Novo Aporte / Investimento</span>
+              <span>Fazer novo aporte</span>
             </button>
           </div>
 
@@ -557,271 +566,70 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
         </div>
       </div>
 
-      {/* 2. QUADRO DE PARÂMETROS FINANCEIROS: O parâmetro sem ter que lançar 2 vezes */}
-      <div 
-        id="financial-parameters-panel" 
-        className="bg-slate-50/80 rounded-3xl p-5 sm:p-6 border border-slate-200/90 space-y-4"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
-                Quadro de Parâmetros Financeiros
-              </h3>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Comparativo automático da sua distribuição financeira baseado nos lançamentos superiores
-            </p>
-          </div>
-
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-xl self-start sm:self-auto flex items-center gap-1.5">
-            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-            Sem retrabalho: dados sincronizados
-          </span>
-        </div>
-
-        {/* The 4 Parameter Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          
-          {/* Card 1: Renda Principal (Entradas) */}
-          <div className="bg-white rounded-2xl p-4 border border-emerald-200 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">
-                1. Renda Principal
-              </span>
-              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                100% Base
-              </span>
-            </div>
-            <div className="mt-2">
-              <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                {formatCurrency(totalIncome)}
-              </div>
-              <p className="text-[11px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
-                <Link2 className="w-3 h-3" />
-                {incomeTransactions.length > 0 
-                  ? `${incomeTransactions.length} entrada(s) computada(s)`
-                  : 'Nenhuma entrada lançada'}
-              </p>
-            </div>
-          </div>
-
-          {/* Card 2: Despesas Comprometidas */}
-          <div className="bg-white rounded-2xl p-4 border border-rose-200 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800">
-                2. Despesas
-              </span>
-              <span className="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
-                {expensePercentage.toFixed(1)}% da renda
-              </span>
-            </div>
-            <div className="mt-2">
-              <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                {formatCurrency(totalExpenses)}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium mt-1">
-                {totalExpenses > 0 ? (
-                  expensePercentage <= 70 ? '✅ Dentro do limite saudável' : '⚠️ Despesas acima de 70%'
-                ) : 'Nenhum gasto vinculado'}
-              </p>
-            </div>
-          </div>
-
-          {/* Card 3: Investimentos Realizados */}
-          <div className="bg-white rounded-2xl p-4 border border-indigo-200 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-800">
-                3. Investimentos
-              </span>
-              <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
-                {investmentPercentage.toFixed(1)}% da renda
-              </span>
-            </div>
-            <div className="mt-2">
-              <div className="text-xl sm:text-2xl font-black text-indigo-950 tracking-tight">
-                {formatCurrency(totalInvestments)}
-              </div>
-              <p className="text-[11px] text-indigo-700 font-medium mt-1">
-                {investmentPercentage >= 20 
-                  ? '🎯 Meta de 20% atingida!' 
-                  : investmentPercentage > 0 
-                  ? '🌱 Em construção de meta' 
-                  : 'Aguardando primeiro aporte'}
-              </p>
-            </div>
-          </div>
-
-          {/* Card 4: Sobra Livre Líquida */}
-          <div className="bg-white rounded-2xl p-4 border border-sky-200 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-800">
-                4. Sobra Livre
-              </span>
-              <span className="text-[10px] font-bold bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full">
-                {surplusPercentage.toFixed(1)}% da renda
-              </span>
-            </div>
-            <div className="mt-2">
-              <div className={`text-xl sm:text-2xl font-black tracking-tight ${totalCalculatedSurplus < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
-                {formatCurrency(totalCalculatedSurplus)}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium mt-1">
-                {totalCalculatedSurplus > 0 
-                  ? 'Disponível para reserva ou lazer' 
-                  : totalCalculatedSurplus < 0 
-                  ? '⚠️ Déficit detectado' 
-                  : 'Totalmente alocado'}
-              </p>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Diagnosis Note */}
-        <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>
-              <strong>Diagnóstico de Parâmetro:</strong>{' '}
-              {investmentPercentage >= 20 
-                ? 'Sua alocação é ideal para crescimento patrimonial acelerado (20%+).' 
-                : investmentPercentage > 0 
-                ? `Você já destina ${investmentPercentage.toFixed(1)}% para investimentos. Aproveite a sobra de ${formatCurrency(Math.max(0, totalCalculatedSurplus))} para se aproximar da meta de 20%.` 
-                : 'Você ainda não registrou aportes este mês. Destine uma parte da sua entrada para multiplicar seu dinheiro.'}
-            </span>
-          </div>
-
-          {totalCalculatedSurplus > 0 && (
-            <button
-              onClick={() => {
-                setActiveEnvelopeIdForNewItem(envelopes[0]?.id || 'env-1');
-                setNewItemType('investment');
-                setNewItemDescription('Aporte da Sobra Livre');
-                setNewItemAmount(totalCalculatedSurplus.toString());
-                setNewItemCategory('Investimento');
-              }}
-              className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:underline flex items-center gap-1"
-            >
-              <span>Aportar Sobra de {formatCurrency(totalCalculatedSurplus)}</span>
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* MODAL: Adicionar Item (Investimento ou Despesa) direto no Planejamento e Extrato */}
       {activeEnvelopeIdForNewItem && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                {newItemType === 'investment' ? (
-                  <>
-                    <Plus className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
-                    <span>Novo Investimento (Aporte)</span>
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="w-4 h-4 text-rose-600" />
-                    <span>Nova Despesa / Saída</span>
-                  </>
-                )}
-              </h3>
+            <div className="pb-3 border-b border-slate-100 relative">
               <button
                 onClick={() => setActiveEnvelopeIdForNewItem(null)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+                className="absolute right-0 top-0 p-1 text-slate-400 hover:text-slate-700 rounded-lg z-10"
               >
                 <X className="w-5 h-5" />
               </button>
+              <div className="text-center w-full">
+                <h3 className="font-black text-base sm:text-lg text-slate-900 flex items-center justify-center gap-1.5">
+                  <Plus className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
+                  <span>Investimento</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Aporte planejado que sai da receita do mês
+                </p>
+              </div>
             </div>
 
             <form onSubmit={handleAddItem} className="mt-4 space-y-3.5">
-              {/* Type Switcher */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Tipo de Lançamento
-                </label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewItemType('investment');
-                      setNewItemCategory('Investimento');
-                    }}
-                    className={`py-2 text-xs font-extrabold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-                      newItemType === 'investment'
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
+              {/* Badge indicativo centralizado: Investimento */}
+              <div className="flex items-center justify-center p-2.5 bg-indigo-50/80 border border-indigo-100 rounded-xl">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Investir (Aporte)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewItemType('expense');
-                      setNewItemCategory('Geral');
-                    }}
-                    className={`py-2 text-xs font-extrabold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-                      newItemType === 'expense'
-                        ? 'bg-rose-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <TrendingDown className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Despesa (Conta)</span>
-                  </button>
+                  </div>
+                  <span className="text-xs font-bold text-indigo-950">
+                    Investimento
+                  </span>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  {newItemType === 'investment' ? 'Nome do Investimento / Ativo *' : 'Descrição da Conta / Gasto *'}
+                  Nome do Investimento / Ativo *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder={
-                    newItemType === 'investment'
-                      ? 'Ex: Reserva de Emergência, Tesouro Selic, CDB 100%, Ações...'
-                      : 'Ex: Aluguel, Supermercado, Luz, Internet...'
-                  }
+                  placeholder="Ex: Reserva de Emergência, Tesouro Selic, CDB 100%, Ações..."
                   value={newItemDescription}
                   onChange={(e) => setNewItemDescription(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-slate-900"
-                  autoFocus
+                  className="w-full px-3 py-2 text-xs placeholder:text-[11.5px] placeholder:text-slate-400 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-slate-900"
                 />
 
                 {/* Suggestions Pills */}
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {(newItemType === 'investment'
-                    ? [
-                        'Reserva de Emergência',
-                        'Tesouro Selic',
-                        'CDB 100% CDI',
-                        'Ações / FIIs',
-                        'Caixinha Nubank',
-                        'Criptomoeda',
-                      ]
-                    : [
-                        'Aluguel',
-                        'Supermercado',
-                        'Luz / Energia',
-                        'Internet',
-                        'Cartão de Crédito',
-                        'Combustível',
-                      ]
-                  ).map((sug) => (
+                  {[
+                    'Reserva de Emergência',
+                    'Tesouro Selic',
+                    'CDB 100% CDI',
+                    'Ações / FIIs',
+                    'Caixinha Nubank',
+                    'Criptomoeda',
+                  ].map((sug) => (
                     <button
                       key={sug}
                       type="button"
                       onClick={() => {
                         setNewItemDescription(sug);
-                        setNewItemCategory(newItemType === 'investment' ? 'Investimento' : 'Contas');
+                        setNewItemCategory('Investimento');
                       }}
                       className="px-2 py-0.5 text-[11px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 rounded-md font-medium text-slate-600 transition-colors"
                     >
@@ -833,7 +641,7 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Valor (R$) *
+                  Valor do Aporte (R$) *
                 </label>
                 <input
                   type="number"
@@ -842,7 +650,7 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
                   placeholder="0,00"
                   value={newItemAmount}
                   onChange={(e) => setNewItemAmount(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-slate-900 font-bold"
+                  className="w-full px-3 py-2 text-sm placeholder:text-xs placeholder:text-slate-400 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-slate-900 font-bold"
                 />
               </div>
 
@@ -852,14 +660,10 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder={
-                    newItemType === 'investment'
-                      ? 'Ex: Reserva, Renda Fixa, Bolsa de Valores'
-                      : 'Ex: Moradia, Contas Fixas, Alimentação'
-                  }
-                  value={newItemCategory}
+                  placeholder="Investimento"
+                  value={newItemCategory || 'Investimento'}
                   onChange={(e) => setNewItemCategory(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-slate-900"
+                  className="w-full px-3 py-2 text-xs placeholder:text-[11.5px] placeholder:text-slate-400 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-slate-900"
                 />
               </div>
 
@@ -873,19 +677,23 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className={`px-4 py-2 text-xs font-bold text-white rounded-xl shadow-xs transition-colors ${
-                    newItemType === 'investment'
-                      ? 'bg-indigo-600 hover:bg-indigo-700'
-                      : 'bg-rose-600 hover:bg-rose-700'
-                  }`}
+                  className="px-4 py-2 text-xs font-bold text-white rounded-xl shadow-xs transition-colors bg-indigo-600 hover:bg-indigo-700"
                 >
-                  {newItemType === 'investment' ? 'Confirmar Investimento' : 'Confirmar Despesa'}
+                  Confirmar Investimento
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* MODAL: Gráfico Deitado das Maiores para as Menores (1. Renda, 2. Despesas, 3. Investimentos) */}
+      <HorizontalRankingModal
+        isOpen={Boolean(rankingModalType)}
+        onClose={() => setRankingModalType(null)}
+        initialType={rankingModalType || 'expense'}
+        transactions={transactions}
+      />
 
       {/* 4. The Grand Surplus Result Footer */}
       <div 
@@ -898,7 +706,7 @@ export const SpreadsheetPlanner: React.FC<SpreadsheetPlannerProps> = ({
           </div>
           <div>
             <div className="flex items-center justify-center sm:justify-start gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider bg-white/25 px-2 py-0.5 rounded-md text-emerald-100">
+              <span className="text-xs font-bold tracking-wider bg-white/25 px-2 py-0.5 rounded-md text-emerald-100">
                 Resultado Integrado
               </span>
               <span className="text-xs text-emerald-100 font-medium hidden sm:inline">

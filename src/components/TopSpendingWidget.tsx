@@ -79,7 +79,7 @@ export const TopSpendingWidget: React.FC<TopSpendingWidgetProps> = ({
 
         {/* Top 3 biggest individual expenses */}
         <div className="mt-4">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          <span className="text-xs font-bold tracking-wider text-slate-500">
             Maiores Despesas Individuais:
           </span>
           <div className="mt-2 space-y-2">

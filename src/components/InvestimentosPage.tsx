@@ -32,7 +32,7 @@ export const InvestimentosPage: React.FC<InvestimentosPageProps> = ({
   onOpenNewTransaction,
   onAddDepositToGoal,
 }) => {
-  const investmentTransactions = transactions.filter((t) => t.type === 'investment');
+  const investmentTransactions = transactions.filter((t) => t.type === 'investment' || t.category === 'Investimento');
   const totalInvestment = investmentTransactions.reduce((acc, t) => acc + t.amount, 0);
 
   return (
@@ -73,7 +73,7 @@ export const InvestimentosPage: React.FC<InvestimentosPageProps> = ({
         {/* Total Aportes no Mês */}
         <div className="bg-white rounded-2xl p-5 border-2 border-indigo-500/80 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-800 bg-indigo-100/90 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold tracking-wider text-indigo-800 bg-indigo-100/90 px-2.5 py-1 rounded-md">
               Total Investido no Mês
             </span>
             <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
@@ -92,7 +92,7 @@ export const InvestimentosPage: React.FC<InvestimentosPageProps> = ({
         {/* Aporte Tesouro Selic */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
               Tesouro Selic (Reserva)
             </span>
             <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
@@ -110,7 +110,7 @@ export const InvestimentosPage: React.FC<InvestimentosPageProps> = ({
         {/* Caixinha Imprevistos */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
               Caixinha Nubank
             </span>
             <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center">
@@ -150,7 +150,7 @@ export const InvestimentosPage: React.FC<InvestimentosPageProps> = ({
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-bold tracking-wider bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
                       {goal.category}
                     </span>
                     <span className="text-xs font-bold text-slate-900">{percentage}%</span>

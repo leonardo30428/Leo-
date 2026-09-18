@@ -60,13 +60,20 @@ export function calculateSummary(transactions: Transaction[]): MonthlySummary {
     } else if (tx.type === 'expense') {
       totalExpense += tx.amount;
       categoryExpenses[tx.category] = (categoryExpenses[tx.category] || 0) + tx.amount;
+      if (tx.category === 'Investimento') {
+        totalInvestment += tx.amount;
+      }
     } else if (tx.type === 'investment') {
       totalInvestment += tx.amount;
     }
   });
 
+  const nonExpenseInvestment = transactions
+    .filter((tx) => tx.type === 'investment')
+    .reduce((acc, tx) => acc + tx.amount, 0);
+
   const balance = totalIncome - totalExpense;
-  const netRemaining = totalIncome - totalExpense - totalInvestment;
+  const netRemaining = totalIncome - totalExpense - nonExpenseInvestment;
   const isRed = balance < 0;
 
   // Find category with highest expense

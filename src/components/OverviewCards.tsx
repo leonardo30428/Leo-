@@ -27,7 +27,7 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({ summary, onNavigat
         
         <div className="relative z-10">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/90 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold tracking-wider text-emerald-800 bg-emerald-100/90 px-2.5 py-1 rounded-md">
               Total de Entradas
             </span>
             <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shadow-emerald-200 group-hover:bg-emerald-700 transition-colors">
@@ -62,7 +62,7 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({ summary, onNavigat
         title="Clique para ir para a página completa de Gastos"
       >
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md">
+          <span className="text-xs font-bold tracking-wider text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md">
             Total de Gastos
           </span>
           <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center shadow-xs shadow-rose-200 group-hover:bg-rose-600 transition-colors">
@@ -96,7 +96,7 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({ summary, onNavigat
         title="Clique para ir para a página de Investimentos e Metas"
       >
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md">
+          <span className="text-xs font-bold tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md">
             Valor Investido
           </span>
           <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs shadow-indigo-200 group-hover:bg-indigo-700 transition-colors">
@@ -133,7 +133,7 @@ export const OverviewCards: React.FC<OverviewCardsProps> = ({ summary, onNavigat
         title="Clique para ver o Planejamento e Envelopes da sua Planilha"
       >
         <div className="flex items-center justify-between">
-          <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md ${
+          <span className={`text-xs font-bold tracking-wider px-2.5 py-1 rounded-md ${
             isRed ? 'bg-rose-200 text-rose-900' : 'bg-slate-100 text-slate-700'
           }`}>
             Saúde Financeira

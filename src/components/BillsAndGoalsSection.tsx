@@ -378,8 +378,7 @@ export const BillsAndGoalsSection: React.FC<BillsAndGoalsSectionProps> = ({
                     placeholder="Ex: 250.00"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded-lg text-xs"
-                    autoFocus
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs placeholder:text-[11.5px] placeholder:text-slate-400"
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">

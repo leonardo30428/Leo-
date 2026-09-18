@@ -102,7 +102,7 @@ export const GastosPage: React.FC<GastosPageProps> = ({
         {/* Total Gastos */}
         <div className="bg-white rounded-2xl p-5 border-2 border-rose-400/80 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-rose-800 bg-rose-100/90 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold tracking-wider text-rose-800 bg-rose-100/90 px-2.5 py-1 rounded-md">
               Total de Gastos
             </span>
             <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center">
@@ -121,7 +121,7 @@ export const GastosPage: React.FC<GastosPageProps> = ({
         {/* Maior Categoria de Gasto */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
               Maior Compromisso
             </span>
             <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
@@ -139,7 +139,7 @@ export const GastosPage: React.FC<GastosPageProps> = ({
         {/* Total de Contas Mapeadas */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold tracking-wider text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
               Contas & Lembretes
             </span>
             <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
@@ -212,7 +212,7 @@ export const GastosPage: React.FC<GastosPageProps> = ({
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <span className="text-[10px] font-bold tracking-wider text-slate-500">
                     {bill.category}
                   </span>
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -272,9 +272,9 @@ export const GastosPage: React.FC<GastosPageProps> = ({
                   <TrendingDown className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-sm sm:text-base font-bold text-slate-900 truncate">{item.description}</h4>
+                  <h4 className="text-base font-extrabold text-slate-900 truncate">{item.description}</h4>
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 mt-1">
-                    <span className="flex items-center gap-1 font-medium text-slate-600">
+                    <span className="flex items-center gap-1 text-xs sm:text-[13px] font-semibold text-slate-700">
                       <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       {formatDate(item.date)}
                     </span>
@@ -315,16 +315,16 @@ export const GastosPage: React.FC<GastosPageProps> = ({
                         type="button"
                         onClick={() => onToggleTransactionPaid?.(item.id)}
                         title={pending ? 'Pendente - clique para marcar como pago' : 'Pago - clique para marcar como pendente'}
-                        className={`text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap inline-flex items-center gap-1 transition-all hover:scale-102 shadow-2xs ${
+                        className={`text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap inline-flex items-center gap-1.5 transition-all hover:scale-102 shadow-2xs ${
                           pending
                             ? 'text-amber-800 bg-amber-100 border border-amber-300'
                             : 'text-slate-700 bg-slate-100 border border-slate-200'
                         }`}
                       >
                         {pending ? (
-                          <Clock className="w-3 h-3 text-amber-600" />
+                          <Clock className="w-3.5 h-3.5 text-amber-600" />
                         ) : (
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                         )}
                         {pending ? 'Pendente' : 'Pago'}
                       </button>

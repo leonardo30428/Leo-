@@ -51,7 +51,7 @@ export const ThreeActionCards: React.FC<ThreeActionCardsProps> = ({
           </div>
 
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-[11px] font-bold tracking-wider text-slate-400">
               Total de Gastos
             </span>
             <div className="text-xl sm:text-2xl font-black text-rose-600 tracking-tight">
@@ -90,7 +90,7 @@ export const ThreeActionCards: React.FC<ThreeActionCardsProps> = ({
           </div>
 
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-[11px] font-bold tracking-wider text-slate-400">
               Total de Entradas
             </span>
             <div className="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight">
@@ -129,7 +129,7 @@ export const ThreeActionCards: React.FC<ThreeActionCardsProps> = ({
           </div>
 
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-[11px] font-bold tracking-wider text-slate-400">
               Fatura Atual do Cartão
             </span>
             <div className="text-xl sm:text-2xl font-black text-indigo-600 tracking-tight">

@@ -91,7 +91,7 @@ export const SmartSavingTips: React.FC<SmartSavingTipsProps> = ({ summary, onOpe
           >
             <div>
               <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100/80 text-emerald-800 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-bold tracking-wider bg-emerald-100/80 text-emerald-800 px-2 py-0.5 rounded">
                   {tip.badge}
                 </span>
                 <span className="text-[11px] font-medium text-slate-400">
